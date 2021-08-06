@@ -13,7 +13,7 @@ export default class TicketElement {
                 <div class='badge'></div>
             </div>
             <div class='content'>
-                <div class='name'>${ticket.agent ? ticket.agent.name : ticket.title}</div>
+                <div class='name'>${ticket.agent ? ticket.agent.name + ' - ' + ticket.title: ticket.title}</div>
                 <div class='last'>${ticket.channel.lastMessage.message || NO_MESSAGE}</div>
             </div>
             <div class='updated-at'></div>
@@ -50,7 +50,7 @@ export default class TicketElement {
       this.badge.hide();
     }
 
-    this.name.html(agent ? agent.name : this.ticket.title);
+    this.name.html(agent ? agent.name + ' - ' + this.ticket.title: this.ticket.title);
     if (this.ticket.channel.lastMessage) {
       if (this.ticket.channel.lastMessage.isFileMessage()) {
         this.last.html(this.ticket.channel.lastMessage.name);

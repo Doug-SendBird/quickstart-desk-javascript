@@ -14,6 +14,8 @@ import NotificationElement from './component/notification.js';
 /** Default settings
  */
 const connectionError = 'Cannot connect to internet.';
+const DEFAULT_FIELD_PLACEHOLDER = 'Enter field value...';
+const TICKET_TITLE_PLACEHOLDER = 'Enter Ticket Title...';
 
 const DEBUG = false;
 
@@ -33,6 +35,7 @@ export default class Widget {
                     <div class='-sbd-tab-item' data-status='${SendBirdDesk.Ticket.Status.CLOSED}'>CLOSED</div>
                     <div class='-sbd-tab-bar'></div>
                 </div>
+                <div class='-sbd-editfields'>Fields</div>
                 <div class='-sbd-menu'><div class='icon'></div></div>
                 <div class='-sbd-menu-list'>
                   <div class='-sbd-menu-item' data-cmd='signout'>Sign out</div>
@@ -42,10 +45,29 @@ export default class Widget {
                 <div class='-sbd-ticket-new'>
                     <div class='icon'></div>
                     <div class='label'>Start a new conversation.</div>
+                </div>                
+                <div class='-sbd-ticket-fields'>
+                    <div class='tickettitlelabel'>Ticket Title</div>
+                    <input type='text' class='tickettitle' placeholder='${TICKET_TITLE_PLACEHOLDER}'></input>
+                    <div class='field1label'>Issue Type</div>
+                    <select class='field1'>
+                      <option>Business</option>
+                      <option>Homeowner</option>
+                    </select>
+                    <div class='field2label'>Service </div>
+                    <select class='field2'>
+                      <option>Other</option>
+                      <option>Credit Request</option>
+                      <option>Change Lead status</option>
+                      <option>Question on previous service</option>
+                    </select>
+                    <div class='field3label'>Sentiment </div>
+                    <input type='text' class='field3' placeholder='${DEFAULT_FIELD_PLACEHOLDER}'></input>
                 </div>
             </div>
             <div class='-sbd-error'>${connectionError}</div>
         </div>`);
+
     this.element.appendChild(this.panel);
     this.error = simplify(this.element.querySelector('.-sbd-error'));
 
@@ -57,6 +79,30 @@ export default class Widget {
         selectTab(status);
       });
     }
+
+    this.editing = false;
+    let editfields = simplify(document.querySelector('.-sbd-editfields'));
+    let ticketfields = simplify(document.querySelector('.-sbd-ticket-list > .-sbd-ticket-fields'));
+    this.tickettitle = simplify(document.querySelector('.tickettitle'));
+    this.field1 = simplify(document.querySelector('.field1'));
+    this.field2 = simplify(document.querySelector('.field2'));
+    this.field3 = simplify(document.querySelector('.field3'));
+
+    ticketfields.hide();
+
+    editfields.on('click', () => {
+      //if !editing show edit fields and set editing flag
+      //else clear and hide edit fields and clear editing flag
+      if (!this.editing) {
+       ticketfields.show();
+       this.editing = true;
+      } else {
+       //probably should clear the fields on hide too, but leave that for later
+       ticketfields.hide();
+       this.editing = false;
+      }
+
+    });
 
     let menu = simplify(document.querySelector('.-sbd-menu'));
     let menuList = simplify(document.querySelector('.-sbd-menu-list'));
@@ -103,12 +149,24 @@ export default class Widget {
     let ticketNew = simplify(document.querySelector('.-sbd-ticket-list > .-sbd-ticket-new'));
     ticketNew.on('click', () => {
       const ticketNum = ('000' + (new Date().getTime() % 1000)).slice(-3);
-      const tempTicketTitle = `Issue #${ticketNum}`;
+      const tempTicketTitle = (this.tickettitle.val() === '') ? `Issue #${ticketNum}`:this.tickettitle.val();
       this.spinner.attachTo(this.ticketList);
-      SendBirdDesk.Ticket.create(tempTicketTitle, user.nickname, (ticket, err) => {
-        if (err) throw err;
-        this.spinner.detach();
-        this.startNewDialog(ticket);
+      //SendBirdDesk.Ticket.create(tempTicketTitle, user.nickname, (ticket, err) => {
+      SendBirdDesk.Ticket.create(
+        tempTicketTitle, 
+        user.nickname,
+        "",
+        {
+          issuetype: this.field1.val(),
+          component: this.field2.val(),
+          sentiment: this.field3.val()
+        },
+        "", //priority
+        ["sendbird_group_channel_74273268_ea8868d54dee97e6e940fb5ecdd8a21933c4c7b0"],
+        (ticket, err) => {
+          if (err) throw err;
+          this.spinner.detach();
+          this.startNewDialog(ticket);
       });
     });
 
@@ -125,8 +183,15 @@ export default class Widget {
           }
         }
 
-        if (tab === SendBirdDesk.Ticket.Status.OPEN) ticketNew.show();
-        else ticketNew.hide();
+        if (tab === SendBirdDesk.Ticket.Status.OPEN) { //OPEN tab
+          ticketNew.show();
+          editfields.show(); //Show text button that shows/hides ticket fields for data entry
+          if (this.editing) ticketfields.show(); // show ticket fields for data entry
+        } else { //CLOSE tab
+          ticketNew.hide();
+          editfields.hide();
+          ticketfields.hide();
+        }
 
         this.currentTab = tab;
         this.currentPage = 0;
