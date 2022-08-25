@@ -51,11 +51,14 @@ export default class Widget {
                     <input type='text' class='tickettitle' placeholder='${TICKET_TITLE_PLACEHOLDER}'></input>
                     <div class='field1label'>Issue Type</div>
                     <select class='field1'>
+                      <option>Concierge</option>
                       <option>Business</option>
                       <option>Homeowner</option>
                     </select>
                     <div class='field2label'>Service </div>
                     <select class='field2'>
+                      <option>Consultation</option>
+                      <option>Billing</option>
                       <option>Other</option>
                       <option>Credit Request</option>
                       <option>Change Lead status</option>
